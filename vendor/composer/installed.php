@@ -3,7 +3,7 @@
         'name' => 'wpwax/directorist-announcement',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '3b6d0cb46e1a506e4af52b689440a93f9861986b',
+        'reference' => '92c16c32b1f6610316b2250ebf68c5f6c2abd717',
         'type' => 'wordpress-theme',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -214,7 +214,7 @@
         'wpwax/directorist-announcement' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '3b6d0cb46e1a506e4af52b689440a93f9861986b',
+            'reference' => '92c16c32b1f6610316b2250ebf68c5f6c2abd717',
             'type' => 'wordpress-theme',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

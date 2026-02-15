@@ -56,14 +56,14 @@ if ( ! class_exists( 'Directorist_Announcement' ) ) {
             $data = get_user_meta( get_current_user_id(), '_plugins_available_in_subscriptions', true );
             $license_key = ! empty( $data['directorist-announcement'] ) ? $data['directorist-announcement']['license'] : '';
 
-            new EDD_SL_Plugin_Updater(ATBDP_AUTHOR_URL, __FILE__, array(
-                'version' => get_plugin_data( __FILE__ )['Version'],        // current version number
-                'license' => $license_key,    // license key (used get_option above to retrieve from DB)
-                'item_id' => ATBDP_DIR_ANNOUNCE_POST_ID,    // id of this plugin
-                'author' => 'AazzTech',    // author of this plugin
-                'url' => home_url(),
-                'beta' => false // set to true if you wish customers to receive update notifications of beta releases
-            ));
+            // new EDD_SL_Plugin_Updater(ATBDP_AUTHOR_URL, __FILE__, array(
+            //     'version' => get_plugin_data( __FILE__ )['Version'],        // current version number
+            //     'license' => $license_key,    // license key (used get_option above to retrieve from DB)
+            //     'item_id' => ATBDP_DIR_ANNOUNCE_POST_ID,    // id of this plugin
+            //     'author' => 'AazzTech',    // author of this plugin
+            //     'url' => home_url(),
+            //     'beta' => false // set to true if you wish customers to receive update notifications of beta releases
+            // ));
         }
 
 		public static function plugins_loaded() {

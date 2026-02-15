@@ -28,6 +28,33 @@ class DA_Update {
 		add_action( 'wp_ajax_atbdp_close_announcement', array( $this, 'close_announcement' ) );
 		add_action( 'wp_ajax_atbdp_get_new_announcement_count', array( $this, 'response_new_announcement_count' ) );
 		add_action( 'wp_ajax_atbdp_clear_seen_announcements', array( $this, 'clear_seen_announcements' ) );
+		add_action( 'wp_ajax_directorist_get_announcement_progress', array( $this, 'get_announcement_progress' ) );
+
+		// Background email queue: run via WP Cron so AJAX returns immediately and avoids timeout.
+		add_action( 'directorist_process_announcement_queue', array( $this, 'process_announcement_email_queue' ) );
+		add_filter( 'cron_schedules', array( $this, 'add_announcement_queue_cron_interval' ) );
+		add_action( 'init', array( $this, 'schedule_announcement_queue_cron' ) );
+	}
+
+	/**
+	 * Add "every minute" interval for announcement email queue cron.
+	 */
+	public function add_announcement_queue_cron_interval( $schedules ) {
+		$schedules['directorist_announcement_every_minute'] = array(
+			'interval' => 60,
+			'display'  => __( 'Every minute (Directorist announcement queue)', 'directorist-announcement' ),
+		);
+		return $schedules;
+	}
+
+	/**
+	 * Schedule cron event if not already scheduled (runs every minute).
+	 */
+	public function schedule_announcement_queue_cron() {
+		if ( wp_next_scheduled( 'directorist_process_announcement_queue' ) ) {
+			return;
+		}
+		wp_schedule_event( time(), 'directorist_announcement_every_minute', 'directorist_process_announcement_queue' );
 	}
 
 	public static function instance() {
@@ -97,19 +124,16 @@ class DA_Update {
 			wp_send_json( $status );
 		}
 
-		// Only admin can send announcements
 		if ( ! current_user_can( 'manage_options' ) ) {
 			$status['message'] = __( 'You are not allowed to send announcement', 'directorist-announcement' );
 			wp_send_json( $status );
 		}
 
-		// Validate Subject
 		if ( empty( $subject ) ) {
 			$status['message'] = __( 'The subject cannot be empty', 'directorist-announcement' );
 			wp_send_json( $status );
 		}
 
-		// Validate Message
 		if ( empty( $message ) ) {
 			$status['message'] = __( 'The message cannot be empty', 'directorist-announcement' );
 			wp_send_json( $status );
@@ -119,92 +143,202 @@ class DA_Update {
 			$status['message'] = __( 'Maximum 400 characters are allowed for the message', 'directorist-announcement' );
 			wp_send_json( $status );
 		}
-		
-		$users_email = ( 'all_user' === $to ) ? DA_Helpers::get_all_user_emails() : explode( ',', $recipient );
 
-		foreach( $users_email as $email ) {
-			// Save the post
-			$announcement = wp_insert_post(
+		// --- 1. Fetch all recipient emails (same as before, using existing helper) ---
+		$raw_emails = ( 'all_user' === $to ) ? DA_Helpers::get_all_user_emails() : array_map( 'trim', explode( ',', $recipient ) );
+
+		// --- 2. Filter invalid emails and ensure each has a valid user ID (avoids invalid post_author) ---
+		$valid_recipients = array();
+		foreach ( (array) $raw_emails as $email ) {
+			$email = is_string( $email ) ? trim( $email ) : $email;
+			if ( ! is_email( $email ) ) {
+				continue;
+			}
+			$user_id = email_exists( $email );
+			// Only include recipients that exist as users so post_author is always valid.
+			if ( $user_id ) {
+				$valid_recipients[ $email ] = $user_id;
+			}
+		}
+		// Deduplicate by email key only; array_unique(..., SORT_REGULAR) is unreliable on associative arrays.
+		$valid_recipients = array_intersect_key( $valid_recipients, array_flip( array_unique( array_keys( $valid_recipients ) ) ) );
+
+		if ( empty( $valid_recipients ) ) {
+			$status['message'] = __( 'No recipient found', 'directorist-announcement' );
+			wp_send_json( $status );
+		}
+
+		// --- 3. Insert one announcement post per valid user; store all created IDs ---
+		$created_post_ids = array();
+		foreach ( $valid_recipients as $email => $user_id ) {
+			$post_id = wp_insert_post(
 				array(
 					'post_type'    => 'listing-announcement',
 					'post_title'   => $subject,
 					'post_content' => $message,
 					'post_status'  => 'publish',
-					'post_author'  => email_exists( $email ),
+					'post_author'  => $user_id,
 				)
 			);
+			if ( is_wp_error( $post_id ) || ! $post_id ) {
+				continue;
+			}
+			$created_post_ids[] = $post_id;
 		}
 
-		if ( is_wp_error( $announcement ) ) {
+		if ( empty( $created_post_ids ) ) {
 			$status['message'] = __( 'Sorry, something went wrong, please try again', 'directorist-announcement' );
 			wp_send_json( $status );
 		}
 
-		$status['announcement'] = $announcement;
-
-		$recipients = array();
-
-		// Get Recipient
-		if ( 'selected_user' === $to ) {
-			$recipients = explode( ',', $recipient );
-			$recipients = array_map( 'trim', $recipients );
-			$recipients = array_filter( $recipients, 'is_email' );
-			$recipients = array_unique( $recipients );
-
-			// Validate recipient
-			if ( empty( $recipients ) ) {
-				$status['message'] = __( 'No recipient found', 'directorist-announcement' );
-				wp_send_json( $status );
-			}
-		}
-
-		if ( 'all_user' === $to ) {
-			$users = DA_Helpers::get_all_user_emails();
-
-			if ( ! empty( $users ) ) {
-				$recipients = $users;
-			}
-
-			// Validate recipient
-			if ( empty( $recipients ) ) {
-				$status['message'] = __( 'No recipient found', 'directorist-announcement' );
-				wp_send_json( $status );
-			}
-		}
-
-		if ( 'all_user' !== $to ) {
-			update_post_meta( $announcement, '_recepents', $recipient );
-		} else {
-			update_post_meta( $announcement, '_recepents', '' );
-		}
-
-		// Update the post meta
-		update_post_meta( $announcement, '_to', $to );
-		update_post_meta( $announcement, '_closed', false );
-		update_post_meta( $announcement, '_seen', false );
-
+		// --- 4. Compute expiration date once (reused for all posts to reduce memory) ---
 		if ( empty( $expiration ) ) {
 			$expiration = 365;
 		}
-
 		$today    = date( 'Y-m-d' );
 		$exp_date = date( 'Y-m-d', strtotime( $today . " + {$expiration} days" ) );
 
-		update_post_meta( $announcement, '_exp_in_days', $expiration );
-		update_post_meta( $announcement, '_exp_date', $exp_date );
-
-		// Send email if enabled
-		if ( $send_to_email ) {
-			$message = atbdp_email_html( $subject, $message );
-			$headers = ATBDP()->email->get_email_headers();
-
-			ATBDP()->email->send_mail( $recipients, $subject, $message, $headers );
+		// --- 5. Update metadata on every created post (not just the last one) ---
+		// Plugin expects _recepents as array for recipient filtering; empty array for "all_user".
+		$recepents_value = ( 'all_user' === $to ) ? array() : array_keys( $valid_recipients );
+		foreach ( $created_post_ids as $post_id ) {
+			update_post_meta( $post_id, '_recepents', $recepents_value );
+			update_post_meta( $post_id, '_to', $to );
+			update_post_meta( $post_id, '_closed', false );
+			update_post_meta( $post_id, '_seen', false );
+			update_post_meta( $post_id, '_exp_in_days', $expiration );
+			update_post_meta( $post_id, '_exp_date', $exp_date );
 		}
 
-		$status['success'] = true;
-		$status['message'] = __( 'The announcement has been sent successfully', 'directorist-announcement' );
+		// --- 6. Queue emails for background sending (prevents AJAX timeout when user count is large) ---
+		$valid_emails = array_keys( $valid_recipients );
+		if ( $send_to_email && ! empty( $valid_emails ) ) {
+			$html_message = atbdp_email_html( $subject, $message );
+			$queue_key    = 'directorist_announcement_email_queue';
+			// Create option with autoload=no so a large queue does not slow every page load.
+			if ( get_option( $queue_key, null ) === null ) {
+				add_option( $queue_key, array(), '', 'no' );
+			}
+			$queue   = get_option( $queue_key, array() );
+			// Queue entry: recipients, subject, message, total_count (fixed), sent_count (updated each batch).
+			$queue[] = array(
+				'recipients'   => $valid_emails,
+				'subject'     => $subject,
+				'message'     => $html_message,
+				'total_count' => count( $valid_emails ),
+				'sent_count'  => 0,
+			);
+			update_option( $queue_key, $queue );
+			// Trigger one batch immediately so low-traffic sites still process queue without waiting for cron.
+			do_action( 'directorist_process_announcement_queue' );
+		}
+
+		// --- 7. Return success immediately; emails are sent by WP Cron in the background ---
+		$status['success']      = true;
+		$status['message']     = __( 'The announcement has been sent successfully', 'directorist-announcement' );
+		$status['announcement'] = $created_post_ids;
 
 		wp_send_json( $status );
+	}
+
+	/**
+	 * Process announcement email queue in small batches (WP Cron handler).
+	 * Sending in the background prevents the AJAX request from timing out when there are many recipients.
+	 * Batching: we send a fixed number of emails per run (default 25), then remove them from the queue,
+	 * so each cron run stays within time/memory limits and the queue drains over multiple runs until empty.
+	 */
+	public function process_announcement_email_queue() {
+		$lock_key = 'directorist_announcement_queue_lock';
+		// Prevent concurrent runs (cron + do_action + page load) from sending duplicates.
+		if ( get_transient( $lock_key ) ) {
+			return;
+		}
+		set_transient( $lock_key, 1, 60 );
+
+		$queue_key = 'directorist_announcement_email_queue';
+		$queue     = get_option( $queue_key, array() );
+		if ( empty( $queue ) || ! is_array( $queue ) ) {
+			delete_transient( $lock_key );
+			return;
+		}
+		if ( ! function_exists( 'ATBDP' ) || ! ATBDP()->email ) {
+			delete_transient( $lock_key );
+			return;
+		}
+
+		$batch_size = (int) apply_filters( 'directorist_announcement_email_batch_size', 25 );
+		$batch_size = $batch_size > 0 ? $batch_size : 25;
+
+		$head      = array_shift( $queue );
+		$recipients = isset( $head['recipients'] ) && is_array( $head['recipients'] ) ? $head['recipients'] : array();
+		$subject    = isset( $head['subject'] ) ? $head['subject'] : '';
+		$message    = isset( $head['message'] ) ? $head['message'] : '';
+		// Progress: total_count never changes; sent_count increases by batch size each run.
+		$total_count = isset( $head['total_count'] ) ? (int) $head['total_count'] : count( $recipients );
+		$sent_count  = isset( $head['sent_count'] ) ? (int) $head['sent_count'] : 0;
+
+		if ( empty( $recipients ) ) {
+			update_option( $queue_key, $queue );
+			delete_transient( $lock_key );
+			return;
+		}
+
+		// Send one batch (default 25); remaining recipients stay in queue for next run.
+		$to_send   = array_slice( $recipients, 0, $batch_size );
+		$remaining = array_slice( $recipients, $batch_size );
+
+		$headers = ATBDP()->email->get_email_headers();
+		$sent = ATBDP()->email->send_mail( $to_send, $subject, $message, $headers );
+		if ( $sent === false ) {
+			error_log( '[Directorist Announcement] Email batch failed' );
+		}
+
+		$sent_count += count( $to_send );
+
+		if ( ! empty( $remaining ) ) {
+			array_unshift( $queue, array(
+				'recipients'   => $remaining,
+				'subject'      => $subject,
+				'message'      => $message,
+				'total_count'  => $total_count,
+				'sent_count'   => $sent_count,
+			) );
+		}
+		update_option( $queue_key, $queue );
+		// Release lock so next cron or trigger can run.
+		delete_transient( $lock_key );
+	}
+
+	/**
+	 * AJAX: return progress for the first queue entry (total, sent, remaining, percent).
+	 * Progress is derived from total_count (fixed per entry) and sent_count (updated each batch).
+	 */
+	public function get_announcement_progress() {
+		$queue_key = 'directorist_announcement_email_queue';
+		$queue     = get_option( $queue_key, array() );
+
+		if ( empty( $queue ) || ! is_array( $queue ) ) {
+			wp_send_json( array( 'total' => 0, 'sent' => 0, 'remaining' => 0, 'percent' => 100 ) );
+		}
+
+		// Safe first entry: reset() works with non-sequential keys; false when empty.
+		$first = reset( $queue );
+		if ( $first === false ) {
+			wp_send_json( array( 'total' => 0, 'sent' => 0, 'remaining' => 0, 'percent' => 100 ) );
+		}
+
+		$total      = isset( $first['total_count'] ) ? (int) $first['total_count'] : 0;
+		$sent       = isset( $first['sent_count'] ) ? (int) $first['sent_count'] : 0;
+		$recipients = isset( $first['recipients'] ) && is_array( $first['recipients'] ) ? $first['recipients'] : array();
+		$remaining  = count( $recipients );
+
+		if ( $total <= 0 ) {
+			wp_send_json( array( 'total' => 0, 'sent' => 0, 'remaining' => 0, 'percent' => 100 ) );
+		}
+
+		// Clamp percent so sent_count > total_count never yields > 100.
+		$percent = $total > 0 ? min( 100, (int) round( ( $sent / $total ) * 100 ) ) : 100;
+		wp_send_json( array( 'total' => $total, 'sent' => $sent, 'remaining' => $remaining, 'percent' => $percent ) );
 	}
 
 	public function non_legacy_add_dashboard_nav_link() {
