@@ -253,7 +253,8 @@ class DA_Update {
 		if ( get_transient( $lock_key ) ) {
 			return;
 		}
-		set_transient( $lock_key, 1, 60 );
+		// 5 min initial window so slow SMTP/network does not expire lock before send_mail() returns.
+		set_transient( $lock_key, 1, 300 );
 
 		$queue_key = 'directorist_announcement_email_queue';
 		$queue     = get_option( $queue_key, array() );
@@ -292,6 +293,9 @@ class DA_Update {
 		if ( $sent === false ) {
 			error_log( '[Directorist Announcement] Email batch failed' );
 		}
+
+		// Extend lock after slow send_mail() so we still hold it while updating the queue.
+		set_transient( $lock_key, 1, 60 );
 
 		$sent_count += count( $to_send );
 
