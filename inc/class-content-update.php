@@ -209,7 +209,8 @@ class DA_Update {
 
 	public function non_legacy_add_dashboard_nav_link() {
 		$announcement_tab      = get_directorist_option( 'announcement_tab', 'directorist-announcement' );
-		$announcement_tab_text = get_directorist_option( 'announcement_tab_text', __( 'Announcements', 'directorist-announcement' ) );
+		$saved_text            = get_directorist_option( 'announcement_tab_text', '' );
+		$announcement_tab_text = ( empty( $saved_text ) || $saved_text === 'Announcements' ) ? __( 'Announcements', 'directorist-announcement' ) : $saved_text;
 		if ( empty( $announcement_tab ) ) {
 			return;
 		}

@@ -4,6 +4,9 @@
 	"main": "gulpfile.js",
 	"author": "wpWax",
 	"license": "(GPL-3.0)",
+	"scripts": {
+		"start": "gulp pot"
+	},
 	"devDependencies": {
 		"gulp": "^4.0.2",
 		"gulp-clean": "^0.4.0",

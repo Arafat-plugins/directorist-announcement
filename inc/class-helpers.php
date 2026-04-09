@@ -14,7 +14,8 @@ class DA_Helpers {
 
 
 	public static function get_announcement_label() {
-		$announcement_label = get_directorist_option( 'announcement_tab_text', __( 'Announcements', 'directorist-announcement' ) );
+		$saved = get_directorist_option( 'announcement_tab_text', '' );
+		$announcement_label = ( empty( $saved ) || $saved === 'Announcements' ) ? __( 'Announcements', 'directorist-announcement' ) : $saved;
 		$new_announcements  = self::get_new_announcement_count();
 		if ( $new_announcements > 0 ) {
 			$announcement_label = $announcement_label . "<span class='directorist-announcement-count show'>{$new_announcements}</span>";
@@ -195,7 +196,8 @@ class DA_Helpers {
 	// add_dashboard_nav_link
 	public static function add_dashboard_nav_link() {
 		$announcement_tab      = get_directorist_option( 'announcement_tab', 'directorist-announcement' );
-		$announcement_tab_text = get_directorist_option( 'announcement_tab_text', __( 'Announcements', 'directorist-announcement' ) );
+		$saved_text            = get_directorist_option( 'announcement_tab_text', '' );
+		$announcement_tab_text = ( empty( $saved_text ) || $saved_text === 'Announcements' ) ? __( 'Announcements', 'directorist-announcement' ) : $saved_text;
 		if ( empty( $announcement_tab ) ) {
 			return;
 		}
