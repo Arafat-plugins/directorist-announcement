@@ -1,4 +1,4 @@
-# Copyright (C) 2026 directorist-announcement
+# Copyright (C) 2025 directorist-announcement
 # This file is distributed under the same license as the directorist-announcement package.
 msgid ""
 msgstr ""
@@ -7,7 +7,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: sovware <support@sovware.com>\n"
-"POT-Creation-Date: 2026-04-09 06:18+0000\n"
+"POT-Creation-Date: 2025-03-18 23:15+0000\n"
 "Project-Id-Version: undefined\n"
 "Report-Msgid-Bugs-To: support@sovware.com\n"
 "X-Poedit-Basepath: ..\n"

@@ -15,107 +15,107 @@ class ComposerStaticInitc1764876408f993398f2b9abe4935e26
     );
 
     public static $prefixLengthsPsr4 = array (
-        'e' =>
+        'e' => 
         array (
             'eftec\\bladeone\\' => 15,
         ),
-        'W' =>
+        'W' => 
         array (
             'WP_CLI\\I18n\\' => 12,
         ),
-        'S' =>
+        'S' => 
         array (
             'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Component\\Finder\\' => 25,
         ),
-        'P' =>
+        'P' => 
         array (
             'Peast\\test\\' => 11,
             'Peast\\' => 6,
         ),
-        'M' =>
+        'M' => 
         array (
             'Mustangostang\\' => 14,
         ),
-        'G' =>
+        'G' => 
         array (
             'Gettext\\Languages\\' => 18,
             'Gettext\\' => 8,
         ),
-        'D' =>
+        'D' => 
         array (
             'Dealerdirect\\Composer\\Plugin\\Installers\\PHPCodeSniffer\\' => 55,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'eftec\\bladeone\\' =>
+        'eftec\\bladeone\\' => 
         array (
             0 => __DIR__ . '/..' . '/eftec/bladeone/lib',
         ),
-        'WP_CLI\\I18n\\' =>
+        'WP_CLI\\I18n\\' => 
         array (
             0 => __DIR__ . '/..' . '/wp-cli/i18n-command/src',
         ),
-        'Symfony\\Polyfill\\Php80\\' =>
+        'Symfony\\Polyfill\\Php80\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
         ),
-        'Symfony\\Component\\Finder\\' =>
+        'Symfony\\Component\\Finder\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/finder',
         ),
-        'Peast\\test\\' =>
+        'Peast\\test\\' => 
         array (
             0 => __DIR__ . '/..' . '/mck89/peast/test/Peast',
         ),
-        'Peast\\' =>
+        'Peast\\' => 
         array (
             0 => __DIR__ . '/..' . '/mck89/peast/lib/Peast',
         ),
-        'Mustangostang\\' =>
+        'Mustangostang\\' => 
         array (
             0 => __DIR__ . '/..' . '/wp-cli/mustangostang-spyc/src',
         ),
-        'Gettext\\Languages\\' =>
+        'Gettext\\Languages\\' => 
         array (
             0 => __DIR__ . '/..' . '/gettext/languages/src',
         ),
-        'Gettext\\' =>
+        'Gettext\\' => 
         array (
             0 => __DIR__ . '/..' . '/gettext/gettext/src',
         ),
-        'Dealerdirect\\Composer\\Plugin\\Installers\\PHPCodeSniffer\\' =>
+        'Dealerdirect\\Composer\\Plugin\\Installers\\PHPCodeSniffer\\' => 
         array (
             0 => __DIR__ . '/..' . '/dealerdirect/phpcodesniffer-composer-installer/src',
         ),
     );
 
     public static $prefixesPsr0 = array (
-        'c' =>
+        'c' => 
         array (
-            'cli' =>
+            'cli' => 
             array (
                 0 => __DIR__ . '/..' . '/wp-cli/php-cli-tools/lib',
             ),
         ),
-        'W' =>
+        'W' => 
         array (
-            'WP_CLI\\' =>
+            'WP_CLI\\' => 
             array (
                 0 => __DIR__ . '/..' . '/wp-cli/wp-cli/php',
             ),
         ),
-        'R' =>
+        'R' => 
         array (
-            'Requests' =>
+            'Requests' => 
             array (
                 0 => __DIR__ . '/..' . '/rmccue/requests/library',
             ),
         ),
-        'M' =>
+        'M' => 
         array (
-            'Mustache' =>
+            'Mustache' => 
             array (
                 0 => __DIR__ . '/..' . '/mustache/mustache/src',
             ),
